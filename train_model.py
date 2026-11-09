@@ -4,8 +4,12 @@
 # ---------------------------------------------------------------
 # Activity A - Retrieve and inspect the dataset
 # ---------------------------------------------------------------
+from pathlib import Path
 import pandas as pd
 from ucimlrepo import fetch_ucirepo
+
+# Always save files next to this script, no matter where it is run from
+BASE_DIR = Path(__file__).resolve().parent
 
 # Fetch UCI Student Performance dataset (ID 320)
 student = fetch_ucirepo(id=320)
@@ -17,7 +21,7 @@ df = pd.concat(
 )
 
 # Save the records as a CSV file
-df.to_csv("student_data.csv", index=False)
+df.to_csv(BASE_DIR / "student_data.csv", index=False)
 
 print("Rows and columns:", df.shape)
 print(df.head())
@@ -89,5 +93,5 @@ print(classification_report(
     zero_division=0
 ))
 
-joblib.dump(model, "student_model.pkl")
+joblib.dump(model, BASE_DIR / "student_model.pkl")
 print("Saved student_model.pkl")
