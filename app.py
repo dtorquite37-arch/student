@@ -1,5 +1,7 @@
 # app.py
-import os
+import subprocess
+import sys
+from pathlib import Path
 import streamlit as st
 import pandas as pd
 import joblib
@@ -7,21 +9,39 @@ import joblib
 st.set_page_config(page_title="Student Predict", page_icon="🎓", layout="wide")
 
 
+# Files are looked up next to app.py, no matter where Streamlit was started
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "student_model.pkl"
+DATA_PATH = BASE_DIR / "student_data.csv"
+
+
 @st.cache_resource
 def load_model():
-    return joblib.load("student_model.pkl")
+    return joblib.load(MODEL_PATH)
 
 
-# Friendly error if train_model.py has not been run yet
-if not (os.path.exists("student_model.pkl") and os.path.exists("student_data.csv")):
+# If train_model.py has not been run yet, offer to run it from here
+if not (MODEL_PATH.exists() and DATA_PATH.exists()):
     st.error(
         "student_model.pkl or student_data.csv not found. "
-        "Run `python train_model.py` first, then restart the app."
+        "Run `python train_model.py` first, or click the button below."
     )
+    if st.button("Run train_model.py now (needs internet)"):
+        with st.spinner("Downloading dataset and training the model..."):
+            result = subprocess.run(
+                [sys.executable, str(BASE_DIR / "train_model.py")],
+                cwd=str(BASE_DIR), capture_output=True, text=True
+            )
+        if result.returncode == 0 and MODEL_PATH.exists() and DATA_PATH.exists():
+            st.cache_resource.clear()
+            st.rerun()
+        else:
+            st.error("Training failed. Details below:")
+            st.code(result.stdout + "\n" + result.stderr)
     st.stop()
 
 model = load_model()
-data = pd.read_csv("student_data.csv")
+data = pd.read_csv(DATA_PATH)
 
 st.title("🎓 Student Performance Prediction")
 st.caption("Classroom prototype for academic risk exploration")
